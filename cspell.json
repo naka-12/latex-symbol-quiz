@@ -1,0 +1,9 @@
+{
+  "version": "0.2",
+  "ignorePaths": ["src/quizData.ts"],
+  "dictionaryDefinitions": [],
+  "dictionaries": [],
+  "words": ["katex"],
+  "ignoreWords": [],
+  "import": []
+}

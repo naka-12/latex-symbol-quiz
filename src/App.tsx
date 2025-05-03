@@ -2,69 +2,56 @@ import { useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import "./App.css";
+import { quizData } from "./quizData.ts";
+
+export type QuizData = {
+  latex: string;
+  correctAnswers: string[];
+  level: "easy" | "medium" | "hard";
+};
 
 const translations = {
   en: {
     title: "LaTeX Symbol Quiz",
     selectDifficulty: "Select difficulty to begin:",
-    low: "Low",
-    mid: "Mid",
-    high: "High",
+    easy: "Easy",
+    medium: "Medium",
+    hard: "Hard",
     submit: "Submit",
     correct: "Correct!",
     incorrect: "Incorrect.",
     correctAnswer: "Correct answer",
     score: "Your score",
     back: "Back to Start",
-    question: "Question",
-    of: "of",
-    placeholder: "Enter LaTeX command"
+    placeholder: "Enter LaTeX command",
   },
   ja: {
-    title: "LaTeX記号クイズ",
-    selectDifficulty: "難易度を選んで開始：",
-    low: "初級",
-    mid: "中級",
-    high: "上級",
+    title: "LaTeX 記号クイズ",
+    selectDifficulty: "難易度を選んで開始",
+    easy: "初級",
+    medium: "中級",
+    hard: "上級",
     submit: "送信",
     correct: "正解！",
-    incorrect: "不正解。",
+    incorrect: "不正解",
     correctAnswer: "正しい答え",
     score: "あなたの得点",
     back: "トップに戻る",
-    question: "第",
-    of: "問 / 全",
-    placeholder: "LaTeXコマンドを入力"
-  }
+    placeholder: "LaTeX コマンドを入力",
+  },
 };
 
-const quizData = [
-  { type: "single", latex: "\\int", correctAnswers: ["int"], level: "low" },
-  { type: "single", latex: "\\sum", correctAnswers: ["sum"], level: "low" },
-  { type: "single", latex: "\\alpha", correctAnswers: ["alpha"], level: "low" },
-  { type: "single", latex: "\\infty", correctAnswers: ["infty"], level: "low" },
-  { type: "single", latex: "\\sqrt{x}", correctAnswers: ["sqrt{x}"], level: "mid" },
-  { type: "single", latex: "\\frac{a}{b}", correctAnswers: ["frac{a}{b}"], level: "mid" },
-  { type: "single", latex: "\\leq", correctAnswers: ["le", "leq"], level: "mid" },
-  { type: "single", latex: "\\geq", correctAnswers: ["ge", "geq"], level: "mid" },
-  { type: "single", latex: "\\rightarrow", correctAnswers: ["rightarrow", "to"], level: "mid" },
-  { type: "single", latex: "\\leftarrow", correctAnswers: ["leftarrow", "gets"], level: "mid" },
-  { type: "single", latex: "\\cdot", correctAnswers: ["cdot"], level: "low" },
-  { type: "single", latex: "\\times", correctAnswers: ["times"], level: "low" },
-  { type: "fill-in", left: "a + \\color{gray}{", right: "} + b", missing: "cdot", correctAnswers: ["cdot"], level: "high" }
-];
-
-const getRandomSubset = (arr, n) => {
+const getRandomSubset = (arr: typeof quizData, n: number) => {
   const shuffled = [...arr].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, n);
 };
 
 export default function App() {
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<"ja" | "en">("ja");
   const t = translations[language];
 
-  const [difficulty, setDifficulty] = useState("");
-  const [questions, setQuestions] = useState([]);
+  const [difficulty, setDifficulty] = useState<QuizData["level"] | null>(null);
+  const [questions, setQuestions] = useState<typeof quizData>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
@@ -72,14 +59,14 @@ export default function App() {
   const [isFinished, setIsFinished] = useState(false);
   const [correctAnswer, setCorrectAnswer] = useState("");
 
-  const startQuiz = (level) => {
+  const startQuiz = (level: QuizData["level"]) => {
     setDifficulty(level);
     const filtered = quizData.filter((q) => q.level === level);
     setQuestions(getRandomSubset(filtered, Math.min(10, filtered.length)));
   };
 
   const restart = () => {
-    setDifficulty("");
+    setDifficulty(null);
     setQuestions([]);
     setCurrentIndex(0);
     setInput("");
@@ -115,24 +102,17 @@ export default function App() {
 
   const renderLatex = () => {
     try {
-      if (currentQuestion.type === "fill-in") {
-        const full = `${currentQuestion.left}${currentQuestion.right}`;
-        return katex.renderToString(full, {
-          throwOnError: false,
-          displayMode: true
-        });
-      } else {
-        return katex.renderToString(currentQuestion.latex, {
-          throwOnError: false,
-          displayMode: true
-        });
-      }
-    } catch {
+      return katex.renderToString(currentQuestion.latex, {
+        throwOnError: false,
+        displayMode: true,
+      });
+    } catch (e) {
+      console.error("Error rendering LaTeX:", e);
       return "Invalid LaTeX";
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\\/g, "");
     setInput(value);
   };
@@ -140,7 +120,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="absolute top-4 right-4 text-sm">
-        <button className="mr-2" onClick={() => setLanguage("en")}>EN</button>
+        <button className="mr-2" onClick={() => setLanguage("en")}>
+          English
+        </button>
         <button onClick={() => setLanguage("ja")}>日本語</button>
       </div>
 
@@ -151,20 +133,43 @@ export default function App() {
           <>
             <p className="mb-4">{t.selectDifficulty}</p>
             <div className="flex flex-col gap-2">
-              <button className="bg-green-500 text-white rounded p-2" onClick={() => startQuiz("low")}>{t.low}</button>
-              <button className="bg-yellow-500 text-white rounded p-2" onClick={() => startQuiz("mid")}>{t.mid}</button>
-              <button className="bg-red-500 text-white rounded p-2" onClick={() => startQuiz("high")}>{t.high}</button>
+              <button
+                className="bg-green-500 text-white rounded p-2"
+                onClick={() => startQuiz("easy")}
+              >
+                {t.easy}
+              </button>
+              <button
+                className="bg-yellow-500 text-white rounded p-2"
+                onClick={() => startQuiz("medium")}
+              >
+                {t.medium}
+              </button>
+              <button
+                className="bg-red-500 text-white rounded p-2"
+                onClick={() => startQuiz("hard")}
+              >
+                {t.hard}
+              </button>
             </div>
           </>
         ) : !isFinished ? (
           <>
             <p className="text-sm text-gray-500 mb-2">
-              {t.question} {currentIndex + 1} {t.of} {questions.length}
+              {currentIndex + 1} / {questions.length}
             </p>
-            <div
-              className="text-2xl mb-4"
-              dangerouslySetInnerHTML={{ __html: renderLatex() }}
-            />
+            {showResult === "correct" && (
+              <p className="mt-4 text-green-600 font-semibold">{t.correct}</p>
+            )}
+            {showResult === "incorrect" && (
+              <div className="mt-4">
+                <p className="text-red-600 font-semibold">{t.incorrect}</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  {t.correctAnswer}: <code>\{correctAnswer}</code>
+                </p>
+              </div>
+            )}
+            <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: renderLatex() }} />
             <div className="flex items-center border mt-2 p-2 rounded w-full">
               <span className="text-gray-500 px-2">\</span>
               <input
@@ -185,21 +190,16 @@ export default function App() {
             >
               {t.submit}
             </button>
-
-            {showResult === "correct" && (
-              <p className="mt-4 text-green-600 font-semibold">{t.correct}</p>
-            )}
-            {showResult === "incorrect" && (
-              <div className="mt-4">
-                <p className="text-red-600 font-semibold">{t.incorrect}</p>
-                <p className="text-sm text-gray-700 mt-1">{t.correctAnswer}: <code>\{correctAnswer}</code></p>
-              </div>
-            )}
           </>
         ) : (
           <div>
-            <p className="text-2xl font-semibold">{t.score}: {score} / {questions.length}</p>
-            <button className="mt-4 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" onClick={restart}>
+            <p className="text-2xl font-semibold">
+              {t.score}: {score} / {questions.length}
+            </p>
+            <button
+              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              onClick={restart}
+            >
               {t.back}
             </button>
           </div>
