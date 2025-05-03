@@ -55,9 +55,9 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
-  const [showResult, setShowResult] = useState("");
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [correctAnswer, setCorrectAnswer] = useState("");
+  const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
 
   const startQuiz = (level: QuizData["level"]) => {
     setDifficulty(level);
@@ -71,33 +71,36 @@ export default function App() {
     setCurrentIndex(0);
     setInput("");
     setScore(0);
-    setShowResult("");
+    setIsCorrect(null);
     setIsFinished(false);
-    setCorrectAnswer("");
+    setCorrectAnswers([]);
   };
 
   const currentQuestion = questions[currentIndex];
 
   const handleSubmit = () => {
+    if (!input) return;
     const trimmed = input.trim();
+    let timeOut = 1000;
     if (currentQuestion.correctAnswers.includes(trimmed)) {
       setScore(score + 1);
-      setShowResult("correct");
-      setCorrectAnswer("");
+      setIsCorrect(true);
+      setCorrectAnswers(currentQuestion.correctAnswers);
     } else {
-      setShowResult("incorrect");
-      setCorrectAnswer(currentQuestion.correctAnswers[0]);
+      setIsCorrect(false);
+      setCorrectAnswers(currentQuestion.correctAnswers);
+      timeOut = 2000;
     }
     setTimeout(() => {
       setInput("");
-      setShowResult("");
-      setCorrectAnswer("");
+      setIsCorrect(null);
+      setCorrectAnswers([]);
       if (currentIndex + 1 < questions.length) {
         setCurrentIndex(currentIndex + 1);
       } else {
         setIsFinished(true);
       }
-    }, 2000);
+    }, timeOut);
   };
 
   const renderLatex = () => {
@@ -113,40 +116,48 @@ export default function App() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\\/g, "");
+    const value = e.target.value.replace(/[\\\s]/g, "");
     setInput(value);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className="flex h-dvh items-center justify-center bg-gray-100 p-4">
       <div className="absolute top-4 right-4 text-sm">
-        <button className="mr-2" onClick={() => setLanguage("en")}>
+        <button
+          className={`mr-2 ${language === "en" ? "underline" : ""}`}
+          onClick={() => setLanguage("en")}
+        >
           English
         </button>
-        <button onClick={() => setLanguage("ja")}>日本語</button>
+        <button
+          className={`${language === "ja" ? "underline" : ""}`}
+          onClick={() => setLanguage("ja")}
+        >
+          日本語
+        </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
-        <h1 className="text-xl font-bold mb-4">{t.title}</h1>
+      <div className="w-full max-w-lg rounded bg-white p-8 text-center shadow-xl">
+        <h1 className="mb-4 text-xl font-bold">{t.title}</h1>
 
         {!difficulty ? (
           <>
             <p className="mb-4">{t.selectDifficulty}</p>
             <div className="flex flex-col gap-2">
               <button
-                className="bg-green-500 text-white rounded p-2"
+                className="rounded border border-blue-400 bg-blue-500/20 px-4 py-2 shadow-md backdrop-blur-md transition hover:bg-blue-500/30"
                 onClick={() => startQuiz("easy")}
               >
                 {t.easy}
               </button>
               <button
-                className="bg-yellow-500 text-white rounded p-2"
+                className="rounded border border-red-400 bg-red-500/20 px-4 py-2 shadow-md backdrop-blur-md transition hover:bg-red-500/30"
                 onClick={() => startQuiz("medium")}
               >
                 {t.medium}
               </button>
               <button
-                className="bg-red-500 text-white rounded p-2"
+                className="rounded border border-purple-400 bg-purple-500/20 px-4 py-2 shadow-md backdrop-blur-md transition hover:bg-purple-500/30"
                 onClick={() => startQuiz("hard")}
               >
                 {t.hard}
@@ -154,50 +165,84 @@ export default function App() {
             </div>
           </>
         ) : !isFinished ? (
-          <>
-            <p className="text-sm text-gray-500 mb-2">
-              {currentIndex + 1} / {questions.length}
-            </p>
-            {showResult === "correct" && (
-              <p className="mt-4 text-green-600 font-semibold">{t.correct}</p>
-            )}
-            {showResult === "incorrect" && (
-              <div className="mt-4">
-                <p className="text-red-600 font-semibold">{t.incorrect}</p>
-                <p className="text-sm text-gray-700 mt-1">
-                  {t.correctAnswer}: <code>\{correctAnswer}</code>
+          <div>
+            <div className="h-9">
+              {isCorrect === null ? (
+                <p className="mb-2 text-sm text-gray-500">
+                  {currentIndex + 1} / {questions.length}
                 </p>
-              </div>
-            )}
-            <div className="text-2xl mb-4" dangerouslySetInnerHTML={{ __html: renderLatex() }} />
-            <div className="flex items-center border mt-2 p-2 rounded w-full">
-              <span className="text-gray-500 px-2">\</span>
-              <input
-                className="flex-1 outline-none text-center"
-                type="text"
-                placeholder={t.placeholder}
-                value={input}
-                onChange={handleChange}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-              />
+              ) : isCorrect === true ? (
+                <div>
+                  <p className="text-2xl font-semibold text-green-600">{t.correct}</p>
+                  <p className="mt-1 text-sm text-gray-700">
+                    {correctAnswers.map((answer, index) => (
+                      <span key={index}>
+                        {index > 0 && ", "}
+                        <code>\{answer}</code>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-2xl font-semibold text-blue-600">{t.incorrect}</p>
+                  <p className="mt-1 text-sm text-gray-700">
+                    {correctAnswers.map((answer, index) => (
+                      <span key={index}>
+                        {index > 0 && ", "}
+                        <code>\{answer}</code>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              )}
             </div>
-            <button
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              onClick={handleSubmit}
-            >
-              {t.submit}
-            </button>
-          </>
+            <div className="mb-4 text-2xl" dangerouslySetInnerHTML={{ __html: renderLatex() }} />
+            <div className="flex items-center justify-center gap-1">
+              <div className="flex w-full flex-1 items-center rounded border border-gray-400 p-2">
+                <span className="pl-2 text-gray-600">\</span>
+                <input
+                  className="flex-1 text-center placeholder-gray-400 outline-none"
+                  type="text"
+                  placeholder={t.placeholder}
+                  value={input}
+                  onChange={handleChange}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                  autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                />
+              </div>
+              <button
+                className={`rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 ${input ? "" : "cursor-not-allowed opacity-50"}`}
+                onClick={handleSubmit}
+              >
+                {t.submit}
+              </button>
+            </div>
+          </div>
         ) : (
           <div>
-            <p className="text-2xl font-semibold">
-              {t.score}: {score} / {questions.length}
-            </p>
+            <p className="text-gray-600">{t.score}</p>
+            <div className="my-2 text-3xl">
+              <span>
+                {score === questions.length
+                  ? "🏆"
+                  : score > (questions.length / 4) * 3
+                    ? "✨"
+                    : score > questions.length / 2
+                      ? "😀"
+                      : score > questions.length / 4
+                        ? "😐"
+                        : "😢"}
+              </span>
+              <span className="ml-2 font-semibold">
+                {score} / {questions.length}
+              </span>
+            </div>
+            <p className="text-gray-600"></p>
             <button
-              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              className="mt-4 rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
               onClick={restart}
             >
               {t.back}
