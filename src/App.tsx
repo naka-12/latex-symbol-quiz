@@ -2,13 +2,9 @@ import { useState } from "react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import "./App.css";
-import { quizData } from "./quizData.ts";
+import { loadQuizData, QuizItem } from "./loadQuizData";
 
-export type QuizData = {
-  latex: string;
-  correctAnswers: string[];
-  level: "easy" | "medium" | "hard";
-};
+const quizData: QuizItem[] = loadQuizData();
 
 const translations = {
   en: {
@@ -50,7 +46,7 @@ export default function App() {
   const [language, setLanguage] = useState<"ja" | "en">("ja");
   const t = translations[language];
 
-  const [difficulty, setDifficulty] = useState<QuizData["level"] | null>(null);
+  const [difficulty, setDifficulty] = useState<QuizItem["level"] | null>(null);
   const [questions, setQuestions] = useState<typeof quizData>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [input, setInput] = useState("");
@@ -59,7 +55,7 @@ export default function App() {
   const [isFinished, setIsFinished] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
 
-  const startQuiz = (level: QuizData["level"]) => {
+  const startQuiz = (level: QuizItem["level"]) => {
     setDifficulty(level);
     const filtered = quizData.filter((q) => q.level === level);
     setQuestions(getRandomSubset(filtered, Math.min(10, filtered.length)));
@@ -82,13 +78,13 @@ export default function App() {
     if (!input) return;
     const trimmed = input.trim();
     let timeOut = 1000;
-    if (currentQuestion.correctAnswers.includes(trimmed)) {
+    if (currentQuestion.answers.includes(trimmed)) {
       setScore(score + 1);
       setIsCorrect(true);
-      setCorrectAnswers(currentQuestion.correctAnswers);
+      setCorrectAnswers(currentQuestion.answers);
     } else {
       setIsCorrect(false);
-      setCorrectAnswers(currentQuestion.correctAnswers);
+      setCorrectAnswers(currentQuestion.answers);
       timeOut = 2000;
     }
     setTimeout(() => {
